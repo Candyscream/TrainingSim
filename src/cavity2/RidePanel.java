@@ -41,7 +41,7 @@ public class RidePanel extends JPanel {
 		widthSpinner.setPreferredSize(new Dimension(50,20));
 		widthSpinner.setMinimumSize(new Dimension(30,20));
 		SpinnerModel wSpinnerModel =
-		        new SpinnerNumberModel(2, 1, 14, 0.25);
+		        new SpinnerNumberModel(2, 1, 14, 0.10);
 		widthSpinner.setModel(wSpinnerModel);
 		add(label2);
 		
