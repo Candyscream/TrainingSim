@@ -89,7 +89,7 @@ public class Cavity implements Cloneable{
 				
 			} 
 			if (dir==1&&(curD+1>=topD||input.getHeadDiam()>Math.max(getMacAt(curD),getCucAt(curD))+0.5||curD+1>input.getLength()-1)){
-				dir=-1; if (!setMindepth){minD=curD;setMindepth=true;} // update Direction, 
+				dir=-1; soreness+=5;  if (!setMindepth){minD=curD; setMindepth=true;} // update Direction, 
 				maxD=Math.max(maxD, curD);
 			}
 			/* when moving deeper and the next segment doesen't exest or is too tight pull out*/
@@ -107,34 +107,137 @@ public class Cavity implements Cloneable{
 	}
 
 
-	public String getDescription() {
+	public String getDescription(int min, int max) {
 		AlternativeStringHandler output=new AlternativeStringHandler();
-		switch ((int)(getLooseness()/25)){
-		case 1: {output.addCategory(new String[]{"tight"}); break;}
-		case 2: {output.addCategory(new String[]{"slightly loose"}); break;}
-		case 3: {output.addCategory(new String[]{"loose"}); break;}
-		case 4: {output.addCategory(new String[]{"pretty loose","loose"}); break;}
-		case 5: {output.addCategory(new String[]{"very loose"}); break;}
-		default:{output.addCategory(new String[]{"incredibly loose","extremly sore"}); break;}
+		String out;
+		switch ((int)(getLooseness())){
+		case 0: {output.addCategory(new String[]{"tensed"}); break;}
+		case 1: {output.addCategory(new String[]{"relaxed"}); break;}
+		case 2: {output.addCategory(new String[]{"slightly loosened"}); break;}
+		case 3: {output.addCategory(new String[]{"loosed"}); break;}
+		case 4: {output.addCategory(new String[]{"pretty loosened","loose"}); break;}
+		case 5: {output.addCategory(new String[]{"very loosened up"}); break;}
+		default:{output.addCategory(new String[]{"incredibly loose","extremly loose"}); break;}
 		}
 		
-		switch ((int)(soreness/25)){
-		case 1: {break;}
-		case 2: {output.addCategory(new String[]{"slightly sore"}); break;}
-		case 3: {output.addCategory(new String[]{"sore"}); break;}
-		case 4: {output.addCategory(new String[]{"pretty sore","sore"}); break;}
-		case 5: {output.addCategory(new String[]{"very sore"}); break;}
+		if (getLooseness()>2){
+		switch ((int)(Math.max(0,6*(topCap-getCucAt(0))/topCap))){
+		case 0: {break;}
+		case 1: {output.addCategory(new String[]{"slightly opened"}); break;}
+		case 2: {output.addCategory(new String[]{"opened"}); break;}
+		case 3: {output.addCategory(new String[]{"gaping"}); break;}
+		case 4: {output.addCategory(new String[]{"wide open","gaping wide"}); break;}
+		case 5: {output.addCategory(new String[]{"incredibly wide gaping","extremly wide opened"}); break;}
+		default:{output.addCategory(new String[]{"completly opened"}); break;}
+		}}
+		
+
+		switch ((int)(getStretchedness())){
+		case 0: {output.addCategory(new String[]{"tight"}); break;}
+		case 1: {output.addCategory(new String[]{"slightly stretched"}); break;}
+		case 2: {output.addCategory(new String[]{"stretched"}); break;}
+		case 3: {output.addCategory(new String[]{"pretty stretched","stretched"}); break;}
+		case 4: {output.addCategory(new String[]{"stretched out"}); break;}
+		case 5: {output.addCategory(new String[]{"incredibly stretched out","extremly stretched out"}); break;}
+		default:{output.addCategory(new String[]{"completly stretched out"}); break;}
+		}
+		
+		switch ((int)(soreness/45)){
+		case 0: {break; }
+		case 1: {output.addCategory(new String[]{"slightly sore"}); break;}
+		case 2: {output.addCategory(new String[]{"sore"}); break;}
+		case 3: {output.addCategory(new String[]{"pretty sore","sore"}); break;}
+		case 4: {output.addCategory(new String[]{"very sore"}); break;}
 		default:{output.addCategory(new String[]{"incredibly sore","extremly sore"}); break;}
-		
-		
 		}
-		return output.getRandomString()+" "+getLabel();
+		int c=(int)(getAbusedness());
+		switch (Math.max(0,c)){
+		case 0: {break; }
+		case 1: {break; }
+		case 2: {output.addCategory(new String[]{"slightly abused"}); break;}
+		case 3: {output.addCategory(new String[]{"abused","wrecked"}); break;}
+		case 4: {output.addCategory(new String[]{"thoroughly abused","thoroughly wrecked"}); break;}
+		case 5: {output.addCategory(new String[]{"badly abused","badly wrecked" }); break;}
+		case 6: {output.addCategory(new String[]{"horribly abused","horribly wrecked" }); break;}
+		default:{output.addCategory(new String[]{"extremly abused","extremly wrecked","incredibly abused","incredibly wrecked"}); break;}
+		}
+		out = output.getRandomString(min, max);
+		if (out!="") out+=" ";
+		return out+getLabel();
+		
 	}
 
-	public int getLooseness() {
-		return (int)(100*((cap[1][0]/topCap)+(cap[1][0]/(cap[2][0]+1))));
+	public float getLooseness() {
+		float scale=1;
+		float val=0, div=0, tval;
+		for (int i=0; i<getDepth();i++){
+			tval=((getCucAt(i)/topCap)+getCucAt(i)-getMicAt(i));
+			tval/=(1+i);
+			div+=1f/(1+i);
+			val+=tval;
+		}
+		val/=div;
+		val=Math.max(val-scale/(1+scale), 0);
+		return val*6;
+	}
+	
+	public float getStretchedness(){
+		float val=0, div=0, tval;
+		for (int i=0; i<getDepth();i++){
+			tval=(2*getCucAt(i) - getMicAt(i) - getMacAt(i));
+			tval/=(1+i);
+			div+=1f/(1+i);
+			val+=tval;
+		}
+		val/=div;
+		val=Math.max(val, 0);
+		return val*6;
+	}
+	
+	public float getGapingness(){
+		float val=0, div=0, tval;
+		for (int i=0; i<getDepth();i++){
+			tval=(getCucAt(i)/topCap);
+			tval/=(1+i);
+			div+=1f/(1+i);
+			val+=tval;
+		}
+		val/=div;
+		val=Math.max(val, 0);
+		return val*6;
+	}
+	
+	public float getProlapsedness(){
+		float val=0, div=0, tval;
+		for (int i=0; i<getDepth();i++){
+			tval=((getCucAt(i)+getMicAt(i)+getMacAt(i))/(3*topCap));
+			tval/=(1+i);
+			div+=1f/(1+i);
+			val+=tval;
+		}
+		val/=div;
+		val=Math.max(val, 0);
+		return val*6;
+	}
+	
+	public float getAbusedness(){
+		return ((getStretchedness()*getSoreness())/(25*3));
 	}
 
+	public float getStretchyness(){
+		float val=0, div=0, tval;
+		for (int i=0; i<getDepth();i++){
+			tval=((getMicAt(i)+getMacAt(i))/(2*topCap));
+			tval/=(1+i);
+			div+=1f/(1+i);
+			val+=tval;
+		}
+		val/=div;
+		val=Math.max(val, 0);
+		return val*6;
+		
+	}
+	
 	public String getLabel() {
 		return name;
 	}
@@ -243,6 +346,9 @@ public class Cavity implements Cloneable{
 				clone.setMacAt(i, cap[2][i]);  
 		} 
 		clone.pain=getPain();
+		clone.soreness=getSoreness();
+		clone.topCap=topCap;
+		clone.name=new String(name);
 		return clone;}
 
 	public void setDepth(int cm) {

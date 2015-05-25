@@ -1,6 +1,7 @@
 package cavity2;
 
 import java.awt.Component;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 import javax.swing.JTable;
@@ -12,6 +13,7 @@ import javax.swing.table.TableColumn;
 public class CStateTableModel2 extends AbstractTableModel{
 	ArrayList<String[]> columns;
 	ArrayList<CState> cStates;
+	DecimalFormat format = new DecimalFormat("0.00"); 
 
 	public int getColumnCount() {
 		return columns.size();
@@ -42,25 +44,36 @@ public class CStateTableModel2 extends AbstractTableModel{
 		
 		columns.clear();
 		int cavDepth=cStates.get(0).getCavity().getDepth();
-		String[] col = new String[3+cavDepth];
-		col[0]="Looseness";
-		col[1]="Soreness";
-		col[2]="Pain";
-		col[3]="Opening";
+		String[] col = new String[9+cavDepth];
+		col[0]="Soreness";
+		col[1]="Pain";
+		col[2]="Looseness";
+		col[3]="Strechedness";
+		col[4]="Stretchyness";
+		col[5]="Abusedness";
+		col[6]="Prolapsedness";
+		col[7]="Gapingness";
+		col[8]="Opening";
 		for (int i=1; i<cavDepth;i++){
-			col[i+3]=i+" cm";
+			col[i+8]=i+" cm";
 		}
 		columns.add(col);
 		
 		for (int i=0; i<cStates.size() && i<4; i++){
 			Cavity cav = cStates.get(cStates.size()-1-i).getCavity();
-			col = new String[3+cavDepth];
-			col[0]=""+cav.getLooseness();
-			col[1]=""+cav.getSoreness();
-			col[2]=""+cav.getPain();
+			col = new String[9+cavDepth];
+			col[0]=""+format.format(cav.getSoreness());
+			col[1]=""+format.format(cav.getPain());
+			col[2]=""+format.format(cav.getLooseness());
+			col[3]=""+format.format(cav.getStretchedness());
+			col[4]=""+format.format(cav.getStretchyness());
+			col[5]=""+format.format(cav.getAbusedness());
+			col[6]=""+format.format(cav.getProlapsedness());
+			col[7]=""+format.format(cav.getGapingness());
+	
 			ArrayList<String> caps=cav.printCap();
 			for (int j=0; j<cavDepth; j++){
-				col[j+3]=caps.get(j);
+				col[j+8]=caps.get(j);
 			}
 			columns.add(col);
 		}

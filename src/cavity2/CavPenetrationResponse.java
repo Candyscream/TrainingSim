@@ -20,10 +20,10 @@ public class CavPenetrationResponse {
 		pleasure=pl;
 		oldState=old;
 		insertedObject=in;
-		if (endDepth==0&&cur.getPain()<100)		{defDescription="The "+oldState.getLabel()+" couldn't be penetrated by the "+insertedObject.getLabel()+", because it's just too big.\n";}
-		else if (endDepth==0&&cur.getPain()>=100) {defDescription="The "+oldState.getLabel()+" couldn't be penetrated by the "+insertedObject.getLabel()+", because the "+oldState.getLabel()+" still is in too much pain.\n";}
-		else {if (startDepth==endDepth)	{defDescription="The "+insertedObject.getLabel()+" penetrated the "+oldState.getLabel()+" "+endDepth+" cm deep.\n";}
-		else							{defDescription="Initially the "+insertedObject.getLabel()+" could be inserted "+startDepth+" cm deep into the "+oldState.getLabel()+". After a while it could be inserted "+endDepth+" cm deep.\n";};
+		if (endDepth==0&&cur.getPain()<100)		{defDescription="The "+oldState.getDescription(0,2)+" couldn't be penetrated by the "+insertedObject.getLabel()+", because it's just too big.\n";}
+		else if (endDepth==0&&cur.getPain()>=100) {defDescription="The "+oldState.getDescription(0,2)+" couldn't be penetrated by the "+insertedObject.getLabel()+", because it still is in too much pain.\n";}
+		else {if (startDepth==endDepth)	{defDescription="The "+insertedObject.getLabel()+" penetrated the "+oldState.getDescription(0,2)+" "+endDepth+" cm deep.\n";}
+		else							{defDescription="Initially the "+insertedObject.getLabel()+" could be inserted "+startDepth+" cm deep into the "+oldState.getDescription(0,2)+". After a while it could be inserted "+endDepth+" cm deep.\n";};
 		defDescription+="You tried for "+time+" Minutes";
 		if(cur.getPain()>=100){defDescription+=" but stopped when it was getting too painful";  };
 		defDescription+=".\nYou dealt yourself "+(cur.getPain()-old.getPain())+" Pain, "+(cur.getSoreness()-old.getSoreness())+" Soreness and "+pl+" pleasure.\n";
