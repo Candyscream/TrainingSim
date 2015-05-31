@@ -54,7 +54,7 @@ public CavityGUI(CavityController ctr){
 	add(statTableScrollPane,c);
 	
 	c.gridy=2;
-	statPanel=new StatPanel(""+controller.getCurCav().getSoreness(), ""+controller.getCurCav().getPain(),""+ controller.getCurCav().getLooseness());
+	statPanel=new StatPanel(""+controller.getCurCav().getSore(), ""+controller.getCurCav().getPain(),""+ controller.getCurCav().getLooseness());
 	add(statPanel,c);
 	
 	c.weighty = 0;
@@ -91,7 +91,7 @@ public void updateAll() {
 	tableModel.setStates(controller.getState());
 	tableModel.recalculateColumns();
 	tableModel.initColumnSizes(statTable);
-	statPanel.setLabels(""+curCav.getSoreness(),""+curCav.getPain(), ""+curCav.getLooseness());
+	statPanel.setLabels(""+curCav.getSore(),""+curCav.getPain(), ""+curCav.getLooseness());
 	tableModel.fireTableStructureChanged();	
 }
 

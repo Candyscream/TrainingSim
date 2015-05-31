@@ -9,6 +9,8 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
+import Controller.GameDate;
+
 
 public class CStateTableModel2 extends AbstractTableModel{
 	ArrayList<String[]> columns;
@@ -41,39 +43,51 @@ public class CStateTableModel2 extends AbstractTableModel{
 	}
 	
 	public void recalculateColumns(){
-		
+		int C=12;
 		columns.clear();
 		int cavDepth=cStates.get(0).getCavity().getDepth();
-		String[] col = new String[9+cavDepth];
-		col[0]="Soreness";
-		col[1]="Pain";
-		col[2]="Looseness";
-		col[3]="Strechedness";
-		col[4]="Stretchyness";
-		col[5]="Abusedness";
-		col[6]="Prolapsedness";
-		col[7]="Gapingness";
-		col[8]="Opening";
+		String[] col = new String[C+1+cavDepth];
+		col[0]="datecheck";
+		col[1]="vSore";
+		col[2]="vPain";
+		col[3]="vDesense";
+		col[4]="vDamage";
+		
+		col[5]="Looseness";
+		col[6]="Soreness";
+		col[7]="Stretchyness";
+		col[8]="Abusedness";
+		col[9]="Prolapsedness";
+		col[10]="Gapingness";
+		col[11]="Damagedness";
+		col[12]="Opening";
+		
 		for (int i=1; i<cavDepth;i++){
-			col[i+8]=i+" cm";
+			col[i+C]=i+" cm";
 		}
 		columns.add(col);
 		
 		for (int i=0; i<cStates.size() && i<4; i++){
 			Cavity cav = cStates.get(cStates.size()-1-i).getCavity();
-			col = new String[9+cavDepth];
-			col[0]=""+format.format(cav.getSoreness());
-			col[1]=""+format.format(cav.getPain());
-			col[2]=""+format.format(cav.getLooseness());
-			col[3]=""+format.format(cav.getStretchedness());
-			col[4]=""+format.format(cav.getStretchyness());
-			col[5]=""+format.format(cav.getAbusedness());
-			col[6]=""+format.format(cav.getProlapsedness());
-			col[7]=""+format.format(cav.getGapingness());
+			col = new String[C+1+cavDepth];
+			col[0]=""+new GameDate(cav.internalDate.getDay()+1,cav.internalDate.getHour()+12,cav.internalDate.getMinute()).toString();
+			//col[0]=""+cav.internalDate.toString();
+			col[1]=""+format.format(cav.getSore());
+			col[2]=""+format.format(cav.getPain());
+			col[3]=""+format.format(cav.getDamage());
+			col[4]=""+format.format(cav.getDesense());
+			
+			col[5]=""+format.format(100*cav.getLooseness());
+			col[6]=""+format.format(100*cav.getSoreness());
+			col[7]=""+format.format(100*cav.getStretchyness());
+			col[8]=""+format.format(100*cav.getAbusedness());
+			col[9]=""+format.format(100*cav.getProlapsedness());
+			col[10]=""+format.format(100*cav.getGapingness());
+			col[11]=""+format.format(100*cav.getDamagedness());
 	
 			ArrayList<String> caps=cav.printCap();
 			for (int j=0; j<cavDepth; j++){
-				col[j+8]=caps.get(j);
+				col[j+C]=caps.get(j);
 			}
 			columns.add(col);
 		}

@@ -45,7 +45,7 @@ public void simpleInsertAction(int time,int length,float diam){
 	for (int i=0; i<length; i++){ins[i]=diam;}
 	
 	SimpleToy insObj=new SimpleToy("Toy",ins,false);
-	CavPenetrationResponse re = curCav.takePenetration(insObj,time);
+	EssentialPenResponse re = curCav.takePenetration(insObj,time);
 	curDate.setTime(curDate.getTime()+(time-re.time));
 	
 	state.add(new CState(curDate,curCav));

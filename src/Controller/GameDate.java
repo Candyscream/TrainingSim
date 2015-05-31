@@ -10,6 +10,14 @@ public class GameDate {
 		this.time=minutes+60*hours+60*24*day;
 	}
 	
+	public GameDate(long t) {
+		this.time=t;
+	}
+
+	public GameDate(GameDate date) {
+		this.time=date.time;
+	}
+
 	public long getTime(){ return time;}
 	public long setTime(long time){ this.time=time; return time;}
 	public long getTimeTill(int d, int h, int m){
@@ -49,6 +57,10 @@ public class GameDate {
 	public static void main(String[] args){
 		GameDate date=new GameDate(13,17,60);
 		System.out.println(date.printDate());
+	}
+
+	public void addMinutes(int i) {
+	time+=i;		
 	}
 
 }
