@@ -3,7 +3,7 @@ package Person;
 import cavity2.*;
 
 public class Person{
-// sleep = 0: character schläft ein
+// sleep = 0: character falls asleep
 // on orgasm pleasure is converted to satisfaction
 // high satisfaction: fast decreasend and slowly incresing lust
 // low  satisfaction: fast increasing and slowly decreasing lust

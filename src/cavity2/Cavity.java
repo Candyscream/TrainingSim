@@ -1,23 +1,31 @@
 package cavity2;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-
 import Controller.GameDate;
 import Game.*;
 
 public class Cavity implements Cloneable{
-	public static int TD=10; //Timedivision
-	public static float CUC=(0.1f/TD); 	//CurCap Update speed
+        public static int MI=0,CU=1,MA=2;
+	public static final int TD=10;          //Timedivision
+	public static float CUC=(0.2f/TD); 	// CurCap Update speed
 	public static float MAC=(0.01f/TD); 	// MaxCap Update speed
 	public static float MIC=(0.005f/TD); 	// MinCap Update speed
-	public static float MAX_CR=0.01f;		// Maximal Cap regeneration speed
+        public float CAP_UPDATE_SPEED[]={MIC,CUC,MAC};
+	public static float MAX_CR=0.05f;       // Maximal Cap regeneration speed
 	
-	public static float CUC_REGMIN=0.05f;	//			
-	public static float MIC_REGMIN=1f;	
-	public static float MAC_REGMIN=2f;	
-	public static float SPDD_REG=1f; 		// Regeneration rate for sore/pain/damage/desense
-	public static float SPDD_PROD=0.25f;	// Production rate for ...		
-	
+        
+	public static float CUC_REGMIN=1f;	// Lowes val to which cuc will regenerate
+	public static float MIC_REGMIN=1f;      // Lowes val to which mic will regenerate
+	public static float MAC_REGMIN=1f;      // Lowes val to which mac will regenerate
+        
+	public static float SORE_REG=1f;      // reg Speed of sore
+        public static float SORE_GEN=0.025f;      // generation Speed of sore
+        public static float PAIN_REG=2f; 	
+	public static float PAIN_GEN=0.1f; 
+        public static float DESN_REG=0.001f; 	
+	public static float DESN_GEN=0.1f;
+        public static float DAMG_REG=0.001f; 
+	public static float DAMG_GEN=0.1f;
 	// TODO: add more static variables for balancing (regeneration speed, etc.)
 	
 	String name="cavity";
@@ -27,7 +35,6 @@ public class Cavity implements Cloneable{
 	private long tSore, tPain, tDam, tDes, tStretch;
 	public GameDate internalDate=new GameDate(0, 0, 0);
 	public boolean canProlapse=true;
-	
 	
 	public Cavity(int depth, float minC, float maxC, float topC, int prehDepth, String label){
 		topCap=topC;
@@ -44,89 +51,108 @@ public class Cavity implements Cloneable{
 		this(70,0.5f,1.5f,15.0f,50,"Cavity");
 	}
 
-	public EssentialPenResponse takePenetration(InsertionAble input, int minutes) {
+	public GeneralPenResponse takePenetration(InsertionAble input, int minutes,float painlimit) {
 		Cavity clone=this.clone();
 		int topD; 	//max insertion Depth
 		if (input.isPrehensile()) {topD=Math.min(input.getLength(),getDepth());}
-		else  {topD=Math.min(input.getLength(),getPrehDepth());};
-		int t=(int)(minutes*TD); //Timeunites: minutes*Timedivision, actions per Minute...
-		int curD=0; //current depth of insertion
-		int minD=0; // Tracking initial depth that could be reached
-		int maxD=0; // Tracking maximal depth that could be reached
-		int dir=1;	//movement direction
-		float pl=0;
-		boolean setMindepth=false;
-		EssentialPenResponse out;
+		else  {topD=Math.min(input.getLength(),getPrehDepth());}
+		int t=(int)(minutes*TD);    //Timeunites: minutes*Timedivision, actions per Minute...
+		int curD=0;                 //current depth of insertion
+		int minD=0;                 //Tracking initial depth that could be reached
+		int maxD=0;                 //Tracking maximal depth that could be reached
+		int dir=1;                  //current movement direction
+		float pl=0;                 //generated pleasure
+		boolean setMindepth=false;  
+		GeneralPenResponse out;
 		
-		if (input.getHeadDiam()>getMacAt(0)+0.41f){
-			t=0; 
-		
-			out=new EssentialPenResponse(minD, maxD, pl/100, this, clone, input,minutes);
+		if (input.getHeadDiam()>getMacAt(0)+0.5f){
+                    /* penetration was not possible */
+			out=new GeneralPenResponse(minD, maxD, pl/TD, this, clone, input,minutes,GeneralPenResponse.OVERSIZED);
 			}
 		else {
-		for(;t>0&&pain<100+desense;t--){ /*For each Minute*PB */
-			if (t%TD==0) updateTimes(1);
+		for(;t>0&&pain<(100.0+desense)*painlimit;t--){ /* For Minute*PB */
+			if ((t/2)%TD==0) {updateTimes(1);} 
+                        regAll(0.05f/TD);
 			for (int seg=0; seg<curD;seg++){ /* Update caps, lsns, srns, tc. for each segment of the cavity with the InsertAble position */
 				int inputSeg=input.getLength()-1-seg;
 				float cuc=getCucAt(seg), mac=getMacAt(seg), mic=getMicAt(seg), diam=input.getDiameterAt(inputSeg), nextcuc=getCucAt(seg+1);
 				pl+=1;
-				sore+=1;
-				
+				addSore(0.8f/TD); 
 				if (cuc<diam){
-					if (mic<diam){
-						cap[1][seg]=cuc*(1f-CUC/2)+diam*(CUC/2);
-						addSore(((diam-cuc))*0.002f);}
+                                        //stretching
+					if (mic<diam){   
+                                                recalcCapacityAt(MI, seg, 1f, diam);		
+						addSore((diam-cuc)/TD);
+                                        }
 					
-					else cap[1][seg]=cuc*(1f-CUC)+diam*CUC;
-					}
+                                if (cuc<mic && mic<diam) recalcCapacityAt(CU, seg, 0.5f, diam);
+                                else recalcCapacityAt(CU, seg, 1f, diam);}
 				
 				if (mac<diam){
-					// overstretching
+					//overstretching
 					pl-=diam-mac; //TODO: what about masochism? :3
-					addSore((diam-mac)*2f/TD);
-					addPain((diam-mac)*0.02f/TD);
+					addSore((diam-mac)*1.5f/TD);
+					addPain((diam-mac)*10f/TD);
 					}
 				
-				if (cuc>1) cap[1][seg]-=0.005/TD; // regenerate current Capacity
+				
 				
 				if (0.8f*cuc>mic){
-					cap[0][seg]=mic*(1f-MIC)+cuc*0.8f*MIC;}
-				
+					//cap[0][seg]=mic*(1f-MIC)+cuc*0.8f*MIC;
+                                        recalcCapacityAt(MI, seg, 1f, diam*0.8f);
+                                }
 				if (1.05f*cuc>mac){
-					cap[2][seg]=mac*(1f-MAC)+1.05f*cuc*MAC;}
+					//cap[2][seg]=mac*(1f-MAC)+1.05f*cuc*MAC;
+                                        recalcCapacityAt(MA, seg, 1f, cuc*1.05f);
+                                }
 				if (seg+1<topD && nextcuc<cuc){
-					cap[1][seg+1]=nextcuc*0.97f+cuc*0.03f;}
-				regSore(internalDate.getTime()+t/TD);
+					//cap[1][seg+1]=nextcuc*0.97f+cuc*0.03f;
+                                        recalcCapacityAt(CU, seg+1, 1f, cuc);
+                                }
+			
 				
 			} 
 			if (dir==1&&(curD+1>=topD||input.getHeadDiam()>Math.max(getMacAt(curD),getCucAt(curD))+0.5||curD+1>input.getLength()-1)){
-				dir=-1; sore+=5;  if (!setMindepth){minD=curD; setMindepth=true;} // update Direction, 
+				dir=-1; addSore(5f/TD);  if (!setMindepth){minD=curD; setMindepth=true;} // update Direction, 
 				maxD=Math.max(maxD, curD);
 			}
 			/* when moving deeper and the next segment doesen't exest or is too tight pull out*/
 			else if (dir==-1&&curD<=1){dir=1; }
 			/* when almost pulled out push in again */
 			curD+=dir;
-			pain+=sore/30;
-			pain=Math.max(0,pain-5);
-		}
-			out=new EssentialPenResponse(minD, maxD, pl/100, this, clone, input,minutes-(t/TD));
-			}
-		
+                    }
+                   
+                                       
+                }
+                if (pain>(100.0+desense)*painlimit && t<minutes*TD){
+                    out=new GeneralPenResponse(minD, maxD, pl/100, this, clone, input,minutes-(t/TD),GeneralPenResponse.PAIN_WENT_TOO_HIGH);
+                }
+                else if (pain>(100.0+desense)*painlimit && t==minutes*TD){
+                    out=new GeneralPenResponse(minD, maxD, pl/100, this, clone, input,minutes,GeneralPenResponse.PAIN_TOO_HIGH);
+                }
+                else{ 
+                    out=new GeneralPenResponse(minD, maxD, pl/100, this, clone, input,0,GeneralPenResponse.COMPLETE);
+                }
 		System.out.println(out.defDescription);
 		return out;
 	}
 
+        public void recalcCapacityAt(int which, int pos, float speedMod, float in){
+            //Higher values of mod mean quicker accomodation
+            cap[which][pos]=cap[which][pos]*(1f-(CAP_UPDATE_SPEED[which]*speedMod))+in*(CAP_UPDATE_SPEED[which]*speedMod);
+        }
+        
 	public ArrayList<String> printCap() {
 		int depth=getDepth();
 		DecimalFormat format = new DecimalFormat("00.0"); 
-		ArrayList<String> capacys = new  ArrayList<String>();
+		ArrayList<String> capacys = new  ArrayList<>();
 		for (int i=0; i<depth; i++){
 			capacys.add(i, ""+format.format(getMicAt(i))+" | "+format.format(getCucAt(i))+" | "+format.format(getMacAt(i)));
 		}
 		return capacys;
 	}
 
+        @Override
 	public Cavity clone(){
 		int depth=getDepth();
 		Cavity clone =new Cavity(this.getDepth(), cap[0][0], cap[2][0], getTopCap(), this.prehDepth, name);
@@ -141,7 +167,7 @@ public class Cavity implements Cloneable{
 		clone.damage=damage;
 		
 		clone.topCap=topCap;
-		clone.name=new String(name);
+		clone.name=name;
 		clone.canProlapse=canProlapse;
 		clone.tDam=tDam;
 		clone.tDes=tDes;
@@ -150,17 +176,13 @@ public class Cavity implements Cloneable{
 		clone.tStretch=tStretch;
 		
 		clone.internalDate=new GameDate(internalDate);
-		
-		
-		
-		
 		return clone;
 	}
 
 	public String getDescription(int min, int max) {
 		AlternativeStringHandler output=new AlternativeStringHandler();
 		String out;
-		switch ((int)(7*getLooseness())){
+		switch ((int)(6*getLooseness())){
 		case 0: {output.addCategory(new String[]{"tensed"}); break;}
 		case 1: {output.addCategory(new String[]{"relaxed"}); break;}
 		case 2: {output.addCategory(new String[]{"slightly loosened"}); break;}
@@ -205,11 +227,11 @@ public class Cavity implements Cloneable{
 	}
 
 	public float getSoreness(){
-		return (1f-(10f/(10+sore)));
+                float scale = 400;
+		return (1f-(scale/(scale+sore)));
 	}
 	
 	public float getLooseness() {
-		
 		float val=0, div=0, tval;
 		for (int i=0; i<getDepth();i++){
 			tval=((getCucAt(i)+0.1f)/(getMacAt(i)+0.1f));
@@ -242,7 +264,8 @@ public class Cavity implements Cloneable{
 	}
 	
 	public float getDamagedness() {
-		return (1f-(10f/(10+damage)));
+                float scale = 20000;
+		return (1f-(scale/(scale+damage)));
 	}
 
 	public float getAbusedness(){
@@ -272,8 +295,8 @@ public class Cavity implements Cloneable{
 		float val=Math.min(Math.max(w, 0), topCap);
 		int d=Math.max(depth, 1);
 		float[] c=new float[d];
-		if (val==0)	{	for(int i=0; i<d;i++){c[i]=0;};  }
-		else 		{ 	for(int i=0; i<d;i++){c[i]=(d-i)*(val/d);}; }
+		if (val==0)	{	for(int i=0; i<d;i++){c[i]=0;}}
+		else 		{ 	for(int i=0; i<d;i++){c[i]=(d-i)*(val/d);}}
 		return c;
 	}
 
@@ -289,7 +312,8 @@ public class Cavity implements Cloneable{
 	public int getPrehDepth() {
 		return prehDepth;
 	}
-	public void setPrehDepth(int cm) {
+	
+        public void setPrehDepth(int cm) {
 		prehDepth=Math.min(Math.max(2,cm),cap[0].length+1);	
 	}
 	
@@ -324,11 +348,13 @@ public class Cavity implements Cloneable{
 		if (cm<cap[0].length) return cap[0][cm];
 		else return -1;
 	}
+        
 	public void setMicAt(int cm, float w) {
 		if (cm <getDepth()&&cm>=0){ this.cap[0][cm] = Math.min(Math.max(w, 0), topCap); }
 		else System.out.println("Warning:setMinCapAt() out of Bounds");
 		//TODO: better Exception handling
 	}
+        
 	public void addMicAt(int cm, float w) {
 		setMicAt(cm, getMicAt(cm)+w);
 	}
@@ -337,11 +363,13 @@ public class Cavity implements Cloneable{
 		if (cm<cap[1].length) return cap[1][cm];
 		else return -1;
 	}
+        
 	public void setCucAt(int cm, float w) {
 		if (cm <getDepth()&&cm>=0){ this.cap[1][cm] = Math.min(Math.max(w, 0), topCap); }
 		else System.out.println("Warning:setCurCapAt() out of Bounds");
 		//TODO: better Exception handling
 	}
+        
 	public void addCucAt(int cm, float w) {
 		setCucAt(cm,getCucAt(cm)+w);
 	}
@@ -350,17 +378,17 @@ public class Cavity implements Cloneable{
 		if (cm<cap[2].length) return cap[2][cm];
 		else return -1;
 	}
+        
 	public void setMacAt(int cm, float w) {
 		if (cm <getDepth()&&cm>=0){ this.cap[2][cm] = Math.min(Math.max(w, 0), topCap); }
 		else System.out.println("Warning:setCurCapAt() out of Bounds");
 		//TODO: better Exception handling
 	}
+        
 	public void addMacAt(int cm, float w) {
 		setMacAt(cm,getMacAt(cm)+w);
 	}
-
-	
-	
+        
 	public void setDepth(int cm) {
 		int oldDepth=cap[0].length;
 		if (cap[0].length<cm){
@@ -379,15 +407,13 @@ public class Cavity implements Cloneable{
 				cap[1][i+oldDepth]=endCap[1][i];
 				cap[2][i+oldDepth]=endCap[2][i];
 			}
-			
-		};
+		}
 	}
 
-
-
-	public float getSore() {
+        public float getSore() {
 		return sore;
 	}
+        
 	private void setSore(float f) {
 		float v=Math.max(0, f);
 		this.sore = v;
@@ -397,80 +423,99 @@ public class Cavity implements Cloneable{
 		if (f>0) {
 			tSore=0; 
 			if (sore>100) {
-				addPain(0.1f*f);
+				addPain(sore/50f*PAIN_GEN);
 			}
+                        setSore(sore+(f+(sore/75))*SORE_GEN); // grows kinda exponentially
 		}
-		setSore(sore+f);
+                else setSore(sore+f*SORE_REG); 
 	}
-	private void regSore(long addminutes) {
-		long dt=internalDate.getTime()+addminutes-tSore;
-		addSore(-SPDD_REG*(1+dt)/8);
+        
+	private void regSore(float t) {
+            // tX is measured in minutes.
+            // after tf minutes the reg rate is doubled, after 2*tf minutes the rate is tripled... etc.
+            float tf = 30;
+	    addSore((-1-(tf+tSore)/tf)*t);
 	}
 	
 	public float getDesense() {
 		return desense;
 	}
+        
 	private void setDesense(float f) {
 		this.desense = Math.max(f,0);
 	}
+        
 	private void addDesense(float f) {
-		if (f>0) tDes=0;
-		setDesense(desense+(f/(1+desense)));
+		if (f>0) {tDes=0; setDesense(desense+(DESN_GEN*f/(1+desense)));}
+                else setDesense(desense+f*DESN_REG);
 	}
 	
-	private void regDesense(long addminutes){
-		long dt=internalDate.getTime()+addminutes-tSore;
-		addDesense(-SPDD_REG*(1+dt)/40);
+	private void regDesense(float t){
+            // tX is measured in minutes.
+            // after tf minutes the reg rate is doubled, after 2*tf minutes the rate is tripled... etc.
+            float tf = 60*18;
+	    addDesense((-1-(tf+tDes)/tf)*t);
 	}
 	
 	public float getDamage() {
 		return damage;
 	}
+        
 	private void setDamage(float f) {
 		this.damage = Math.max(f,0);
 	}
+        
 	private void addDamage(float f) {
-		if(f>0) { tDam=0;}
-		setDamage(damage+f);
+		if(f>0) { tDam=0; setDamage(damage+f*DAMG_GEN);}
+                else setDamage(damage+f*DAMG_REG);
 	}
-	private void regDamage(long addminutes) {
-		long dt=internalDate.getTime()+addminutes-tDam;
-		addDamage(-SPDD_REG*(1+dt)/32);
+        
+	private void regDamage(float t) {
+            // tX is measured in minutes.
+            // after tf minutes the reg rate is doubled, after 2*tf minutes the rate is tripled... etc.
+            float tf = 60*12;
+	    addDamage((-1-(tf+tDam)/tf)*t);
 	}
 	
 	public float getPain() {
 		return pain;
 	}
+        
 	private void setPain(float pain) {
 		this.pain = Math.max(0,pain);
 	}
+        
 	private void addPain(float f) {
-		float val=f+sore/100+damage/100;
-		if (f>0) {
-			tPain=0;
-			if (pain>60){
-				addDamage(f*0.5f);
-				addDesense(f*0.5f);}
+	
+		if(f>0) { 
+                    tDam=0; setPain(pain+f*PAIN_GEN);
+			if (pain>50){
+				addDamage(f);
+				addDesense(f);
+                        }
 		}
-		setPain(pain+val);		
+                else setPain(pain+f*PAIN_REG);	
 	}
-	private void regPain(long addminutes){
-		long dt=internalDate.getTime()+addminutes-tPain;
-		addPain(-SPDD_REG*(1+dt)/4);
+        
+	private void regPain(float t){
+            // tX is measured in minutes.
+            // after tf minutes the reg rate is doubled, after 2*tf minutes the rate is tripled... etc.
+            float tf = 10;
+	    addPain((-1-(tf+tPain)/tf)*t);
 	}
 
-	private void regAll(long addminutes){
-		regSore(addminutes);
-		regPain(addminutes);
-		regDamage(addminutes);
-		regDesense(addminutes);
+	private void regAll(float t){
+		regSore(t);
+		regPain(t);
+		regDamage(t);
+		regDesense(t);
 	}
 	
 	public void rest(int minutes) {
 		for (int seg=0; seg<getDepth();seg++){
-			addCucAt(seg, -MAX_CR);
-			addMicAt(seg, -MAX_CR);
-			addMacAt(seg, -MAX_CR);
+			addCucAt(seg, -MAX_CR*(1+getCucAt(seg)/getMacAt(seg)));
+			addMicAt(seg, -MAX_CR*0.01f*getMicAt(seg)/getTopCap());
+			addMacAt(seg, -MAX_CR*0.01f*getMacAt(seg)/getTopCap());
 			if (1.05f*getCucAt(seg)>getMacAt(seg)){setMacAt(seg,getMacAt(seg)*0.995f+getCucAt(seg)*0.005f);}
 		}
 		for (;minutes>0;minutes--){regAll(1);updateTimes(1); }
@@ -484,6 +529,9 @@ public class Cavity implements Cloneable{
 		tStretch+=i; 
 		internalDate.addMinutes(i);
 	}
-	
+
+        public float[][] getCapacityArray() {
+        return cap;
+    }	
 }
 
