@@ -56,12 +56,14 @@ the segment following the last (too tight) segment's current capacity accommodat
 current capacity of the last segment (so if you use a toy a lot you will manage to take it deeper) 
 every time the toy hits the last segment
 
-character will stop toying once pain reaches a value of 100, soreness is also indirectly limited by that
+if the character becomes too sore or the pain threshold is reached, the player has to take a rest for a while, before they can keep training
 
-if the character becomes too sore or the pain threshold is reached, the player has to take a rest for a while
+Last Update:
+- a new GUI createt with swing & netbeans. Note that the options Panel doesn't has any functionality yet, but these will be added soon.
+- drastically improved a lot of mechanics, so that improving the balancing will be a lot easier in the future
+- this still doesn't have a lot of gameplay, I'm sorry!
 
 Planned for the near future:
-- some more fooling around with balancing and algorithms for soreness and pain
 - allowing to choose a character name, pronouns and what cavity shall be trained, use that information in the output (third person description)
 - creating a simple character class, for now with a sleep variable/schedule, so the player won't be able to toy like 24/7
 
